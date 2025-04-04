@@ -21,6 +21,6 @@ export const getUserProfile = () => API.get("/api/users/profile");
 
 
 export const getChats = () => API.get("/api/chats");
-export const sendMessage = (chatId, message) => API.post(`/api/chats/${chatId}/messages`, { message });
+export const sendMessage = (userId, messageData) => API.post(`/api/message/send/${userId}`, messageData);
 
 export default API;
