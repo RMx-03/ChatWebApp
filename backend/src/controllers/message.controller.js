@@ -1,6 +1,22 @@
 import User from "../models/user.model.js";
 import Message from "../models/message.model.js";
+import asyncHandler from "express-async-handler";
+
 import cloudinary from "../lib/cloudinary.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
+
+export const getUsers = asyncHandler(async (req, res) => {
+  console.log("Hit /api/message/users route");
+  console.log("Authenticated user:", req.user);
+
+  try {
+    const users = await User.find({ _id: { $ne: req.user._id } }).select("-password");
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Error in getUsers:", error.message);
+    res.status(500).json({ message: "Failed to fetch users" });
+  }  
+});
 
 export const getUsersForSidebar = async (req,res) => {
     try {
@@ -55,8 +71,12 @@ export const sendMessage = async (req,res) => {
 
         await newMessage.save();
 
-        res.status(201).json(newMessage);
+        const receiverSocketId = getReceiverSocketId(receiverId);
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("newMessage", newMessage);
+        }
 
+        res.status(201).json(newMessage);
     } catch (error) {
         console.log("Error in sendMessage controller: ", error.message);
         res.status(500).json({ error: "Internal server error" });

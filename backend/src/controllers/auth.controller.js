@@ -14,30 +14,33 @@ export const signup = async (req,res) => {
             return res.status(400).json({ message: "Password must be at least 6 characters" }); 
         }
 
-        const user = await User.findOne({email})
+        const existingUser = await User.findOne({email});
 
-        if (user) return res.status(400).json({ message: "User already exists with this email" });
+        if (existingUser) return res.status(400).json({ message: "User already exists with this email" });
 
         // pswd hashing
-        const salt = await bcrypt.genSalt(10)
-        const hashedPswd = await bcrypt.hash(password, salt)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPswd = await bcrypt.hash(password, salt);
 
         const newUser = new User({
             fullName,
             email,
             password:hashedPswd,
-        })
+        });
 
-        if(newUser) {
-            // generate jwt token
-            generateToken(newUser._id, res)
+        if (newUser) {
             await newUser.save();
+
+            // generate jwt token
+            const token = generateToken(newUser._id, res);
+            
             
             res.status(201).json({
-                _id:newUser._id,
+                _id: newUser._id,
                 fullName: newUser.fullName,
                 email: newUser.email,
                 profilePic: newUser.profilePic,
+                token,
             });
         } else {
             res.status(400).json({ message: "Invalid user data" });
@@ -57,19 +60,20 @@ export const login = async (req,res) => {
             return res.status(400).json({message:"Invalid credentials"});
         }
 
-        const isPswdCorrect = await bcrypt.compare(password, user.password)
+        const isPswdCorrect = await bcrypt.compare(password, user.password);
         if(!isPswdCorrect) {
             return res.status(400).json({message:"Invalid credentials"});
         }
 
-        generateToken(user._id,res)
+        const token = generateToken(user._id,res);
 
         res.status(200).json({
             _id: user._id,
             fullName: user.fullName,
             email: user.email,
             profilePic: user.profilePic,
-        })
+            token,
+        });
     } catch (error) {
         console.log("Error in login controller", error.message);
         res.status(500).json({ message: "Internal Server Error"});
@@ -86,7 +90,7 @@ export const logout = (req,res) => {
     }
 };
 
-export const updateProfile = async(req,res) => {
+export const updateProfile = async (req,res) => {
     try {
         const {profilePic} = req.body;
         const userId = req.user._id;
@@ -95,8 +99,8 @@ export const updateProfile = async(req,res) => {
             return res.status(400).json({ message: "Profile pic required" });
         }
 
-        const uploadRes = await cloudinary.uploader.upload(profilePic)
-        const updatedUser = await User.findByIdAndUpdate(userId, {profilePic:uploadRes.secure_url}, {new:true})
+        const uploadRes = await cloudinary.uploader.upload(profilePic);
+        const updatedUser = await User.findByIdAndUpdate(userId, {profilePic:uploadRes.secure_url}, {new:true}).select("-password");
 
         res.status(200).json(updatedUser);
     } catch (error) {

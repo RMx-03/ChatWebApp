@@ -1,52 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from "axios";
 import { BiSearch } from 'react-icons/bi';
 import userPhoto from '../assets/user.webp'
+import { useAuth } from '../context/AuthContext';
 
-function SideBar({setShowUser}) {
-    const usersData = [
-        {
-            userId: 1,
-            userImage: "https://randomuser.me/api/portraits/men/1.jpg",
-            username: "John Doe",
-            lastMessage: "Hey! How are you?"
-        },
-        {
-            userId: 2,
-            userImage: "https://randomuser.me/api/portraits/women/2.jpg",
-            username: "Emma Watson",
-            lastMessage: "Let's meet tomorrow!"
-        },
-        {
-            userId: 3,
-            userImage: "https://randomuser.me/api/portraits/men/3.jpg",
-            username: "Michael Smith",
-            lastMessage: "I'll call you later."
-        },
-        {
-            userId: 4,
-            userImage: "https://randomuser.me/api/portraits/women/4.jpg",
-            username: "Sophia Brown",
-            lastMessage: "Got it! Thanks."
-        },
-        {
-            userId: 5,
-            userImage: "https://randomuser.me/api/portraits/men/5.jpg",
-            username: "David Johnson",
-            lastMessage: "Where are you?"
-        },
-        {
-            userId: 4,
-            userImage: "https://randomuser.me/api/portraits/women/4.jpg",
-            username: "Sophia Brown",
-            lastMessage: "Got it! Thanks."
-        },
-        {
-            userId: 5,
-            userImage: "https://randomuser.me/api/portraits/men/5.jpg",
-            username: "David Johnson",
-            lastMessage: "Where are you?"
+
+function SideBar({ setShowUser, setChatUser }) {
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState("");
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const storedUser = JSON.parse(localStorage.getItem("user"));
+        const token = storedUser?.token;
+        if (!token) {
+          throw new Error("No token found in local storage");
         }
-    ];
+
+        const res = await axios.get("http://localhost:5002/api/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        const filtered = res.data.filter((u) => u._id !== user._id);
+        setUsers(filtered);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+
+    fetchUsers();
+  }, [user._id]);
+
+  const filteredUsers = users.filter((u) =>
+    u.fullName.toLowerCase().includes(search.toLowerCase())
+  );
 
     
   return (
@@ -66,36 +57,49 @@ function SideBar({setShowUser}) {
           <input
             type="text"
             placeholder="Search Name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="p-2 w-full outline-none"
           />
         </div>
       </div>
       {/* Mid */}
-      <div className='w-full max-h-[28rem] mt-2 overflow-y-auto  pt-4 pl-1 pr-1 scrollbar-hide  '>
-      {usersData.map((user) => (
-        <div
-          key={user.userId}
-          className="bg-[#C5C6D0] rounded-md p-2  flex items-center gap-3 mb-3 shadow-md"
-        >
-          {/* User Image */}
-          <img
-            src={user.userImage}
-            alt={user.username}
-            className="w-12 h-12 rounded-full object-cover border-2 border-gray-500"
-          />
-          {/* User Info */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">{user.username}</h3>
-            <p className="text-sm text-gray-600">{user.lastMessage}</p>
+      <div className='w-full max-h-[28rem] mt-2 overflow-y-auto  pt-4 pl-1 pr-1 scrollbar-hide'>
+        {filteredUsers.map((user) => (
+          <div
+            key={user._id}
+            onClick={() => setChatUser(user)}
+            className="bg-[#C5C6D0] rounded-md p-2  flex items-center gap-3 mb-3 shadow-md"
+          >
+            {/* User Image */}
+            <img
+              src={user.profilePic || userPhoto}
+              alt={user.fullName}
+              className="w-12 h-12 rounded-full object-cover border-2 border-gray-500"
+            />
+            {/* User Info */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">{user.fullName}</h3>
+              <p className="text-sm text-gray-600">{user.lastMessage || "No recent messages"}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
       </div>
+
       {/* End */}
       <div className='w-full    pt-2 pb-2'>
-        <div onClick={()=> setShowUser(true)} className='w-full flex  items-center gap-5 bg-[#C5C6D0]  rounded-2xl p-1 '>
-            <img src={userPhoto} alt="user-img" loading='lazy' className=' w-[4.8em] h-[3.2em] ' />
-            <p className=' text-[1.2em] font-bold '>Divyanshu</p>
+        <div 
+          onClick={()=> setShowUser(true)} 
+          className='w-full flex  items-center gap-5 bg-[#C5C6D0]  rounded-2xl p-1 '
+        >
+          <img 
+            src={user?.profilePic || userPhoto} 
+            onError={(e) => { e.target.src = userPhoto }}
+            alt="user-img" 
+            loading='lazy' 
+            className=' w-[4.8em] h-[3.2em] ' 
+          />
+          <p className=' text-[1.2em] font-bold '>{user?.fullName || "Your Profile"}</p>
         </div>
       </div>
     </div>
