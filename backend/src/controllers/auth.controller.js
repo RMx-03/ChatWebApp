@@ -91,18 +91,36 @@ export const logout = (req,res) => {
 };
 
 export const updateProfile = async (req,res) => {
-    try {
-        const {profilePic} = req.body;
-        const userId = req.user._id;
+    const userId = req.user._id;
+    const { fullName, email, newPassword, profilePic} = req.body;
+    try {  
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-        if(!profilePic) {
-            return res.status(400).json({ message: "Profile pic required" });
+        if (fullName) user.fullName = fullName;
+        if (email) user.email = email;
+
+        if (newPassword && newPassword.length >= 6) {
+            const salt = await bcrypt.genSalt(10);
+            user.password = await bcrypt.hash(newPassword, salt);
         }
-
-        const uploadRes = await cloudinary.uploader.upload(profilePic);
-        const updatedUser = await User.findByIdAndUpdate(userId, {profilePic:uploadRes.secure_url}, {new:true}).select("-password");
-
-        res.status(200).json(updatedUser);
+        
+        if (profilePic) {
+            const uploadRes = await cloudinary.uploader.upload(profilePic, {
+                folder: "chatApp/profilePics",
+            });
+            user.profilePic = uploadRes.secure_url;
+        }
+        
+        const updatedUser = await user.save();
+        const token = generateToken(updatedUser._id, res);
+        res.status(200).json({
+            _id: updatedUser._id,
+            fullName: updatedUser.fullName,
+            email: updatedUser.email,
+            profilePic: updatedUser.profilePic,
+            token,
+        });
     } catch (error) {
         console.log("error in update profile:", error);
         res.status(500).json({ message: "Internal server error" });

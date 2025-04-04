@@ -18,7 +18,7 @@ API.interceptors.request.use((req) => {
 export const loginUser = (credentials) => API.post("/api/auth/login", credentials);
 export const registerUser = (userData) => API.post("/api/auth/signup", userData);
 export const getUserProfile = () => API.get("/api/users/profile");
-
+export const updateUserProfile = (formData) => API.put("/api/auth/update-profile", formData);
 
 export const getChats = () => API.get("/api/chats");
 export const sendMessage = (userId, messageData) => API.post(`/api/message/send/${userId}`, messageData);
