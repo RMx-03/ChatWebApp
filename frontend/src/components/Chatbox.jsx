@@ -85,12 +85,14 @@ const Chatbox = ({ chatUser }) => {
   };
 
   const handleImageUpload = (e) => {
+    console.log("Image upload triggered");
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImage(reader.result);
         setPreview(reader.result);
+        console.log("Image preview set:", reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -142,9 +144,29 @@ const Chatbox = ({ chatUser }) => {
             </div>
           ))}
         </div>
+        
+        {/* Image Preview */}
+        {preview && (
+          <div className="flex items-center gap-3 bg-gray-800 p-3 rounded-md mx-4 mt-2">
+            <img
+              src={preview}
+              alt="preview"
+              className="max-h-28 rounded-md object-contain border border-gray-300"
+            />
+            <button
+              onClick={() => {
+                setPreview(null);
+                setImage(null);
+              }}
+              className="text-red-500 font-semibold text-sm hover:underline"
+            >
+              ✖ Remove
+            </button>
+          </div>
+        )}
 
         {/* Message Input */}
-        <div className="bg-white p-3 flex items-center gap-3 w-full rounded-2xl">
+        <div className="bg-white p-3 flex items-center gap-3 w-full rounded-2xl mt-2">
           <input
             type="text"
             placeholder="Send a message"
@@ -152,7 +174,7 @@ const Chatbox = ({ chatUser }) => {
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
           />
-          <input type="file" id="image" accept="image/png, image/jpg" hidden onChange={handleImageUpload} />
+          <input type="file" id="image" accept="image/png, image/jpg, image/jpeg" hidden onChange={handleImageUpload} />
           <BsEmojiSmile size={28} />
           <label htmlFor="image" className="flex cursor-pointer">
             <MdPhotoLibrary size={28} className="text-gray-600" />
